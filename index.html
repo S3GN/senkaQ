@@ -3,9 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>senkaQ</title>
+<title>SenkaQ</title>
 
 <script defer src="https://cloud.umami.is/script.js" data-website-id="3622f756-c7ba-4907-849f-b9f77553aacf"></script>
+<link rel="icon" type="image/png" href="favicon.png">
+
+<link rel="apple-touch-icon" href="favicon.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
@@ -18,6 +21,7 @@
         --line-inactive: #dcdde1;
         --line-active: #3498db;
         --active-month-text: #0288d1;
+        --link-color: #e67e22;
         --banner-height: 40px;
     }
 
@@ -27,21 +31,32 @@
         background-color: var(--bg);
         color: var(--secondary);
         margin: 0;
-        padding: 15px;
+        padding: 12px;
         transition: padding-top 0.2s;
+        -webkit-tap-highlight-color: transparent;
+        position: relative; /* 캔버스 기준점 */
     }
     
-    body.sim-active-body { padding-top: calc(15px + var(--banner-height)); }
+    body.sim-active-body { padding-top: calc(12px + var(--banner-height)); }
 
     .container { max-width: 800px; margin: 0 auto; padding-bottom: 30px; }
     
+    /* === 전술 라인 캔버스 (V32 수정: Absolute) === */
+    #tactical-canvas {
+        position: absolute; /* fixed에서 변경: 문서 흐름을 따름 */
+        top: 0; left: 0; 
+        width: 100%; height: 100%;
+        pointer-events: none; 
+        z-index: 50; 
+    }
+
     /* === 시뮬레이션 배너 === */
     #sim-banner {
         display: none; position: fixed; top: 0; left: 0; width: 100%;
         height: var(--banner-height);
-        background: #e67e22; color: white; 
+        background: var(--link-color); color: white; 
         justify-content: center; align-items: center; gap: 10px;
-        font-weight: bold; font-size: 0.9rem; z-index: 1000;
+        font-weight: bold; font-size: 0.9rem; z-index: 2000;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     .btn-banner-stop {
@@ -52,13 +67,12 @@
     /* === 헤더 === */
     .season-header {
         display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 15px; margin-top: 5px;
+        margin-bottom: 12px; margin-top: 5px;
     }
-    /* 아이콘이 빠진 뱃지 스타일 */
     .season-badge {
         background: #2c3e50; color: white; padding: 6px 12px;
         border-radius: 20px; font-weight: 700; font-size: 0.9rem;
-        display: flex; align-items: center;
+        display: flex; align-items: center; gap: 6px;
     }
     
     .header-right {
@@ -74,50 +88,55 @@
     /* === 설정 모달 === */
     .settings-overlay {
         display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.3); z-index: 200;
+        background: rgba(0,0,0,0.3); z-index: 2001;
     }
     .settings-modal {
         display: none; position: absolute; top: 60px; right: 15px;
-        width: 300px; background: white; border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 20px; z-index: 201;
+        width: 340px; background: white; border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 20px; z-index: 2002;
         border: 1px solid #dfe6e9;
+        max-height: 80vh; overflow-y: auto;
     }
     .settings-modal.open { display: block; }
     
     .settings-title { font-weight: 700; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 8px; color: #2c3e50; }
     .settings-section { margin-bottom: 20px; }
     .settings-label { display: block; font-size: 0.85rem; color: #7f8c8d; margin-bottom: 5px; font-weight: 500; }
-    
     .settings-input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; margin-bottom: 8px; }
     
     .btn-group { display: flex; gap: 5px; }
     .btn-action { flex: 1; padding: 8px; border: none; border-radius: 4px; color: white; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
     .btn-start { background: #3498db; }
-    .btn-move { background: #e67e22; }
+    .btn-move { background: var(--link-color); }
     .btn-stop { background: #e74c3c; }
     .btn-reset-data { background: #95a5a6; width: 100%; }
 
+    .manual-list { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; border: 1px solid #eee; padding: 5px; border-radius: 4px; }
+    .manual-item { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #f9f9f9; }
+    .manual-name { font-size: 0.85rem; color: #333; font-weight: 600; }
+    .manual-btn { padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; border: none; cursor: pointer; width: 90px; }
+    
+    .status-none { background: #ecf0f1; color: #7f8c8d; }
+    .status-now { background: #3498db; color: white; }
+    .status-past { background: #95a5a6; color: white; }
+
     #sim-controls-off { display: block; }
     #sim-controls-on { display: none; }
-    
-    .sim-active .settings-input { border-color: #e67e22; background: #fff5e6; color: #d35400; font-weight: bold; }
+    .sim-active .settings-input { border-color: var(--link-color); background: #fff5e6; color: #d35400; font-weight: bold; }
     .sim-active #sim-controls-off { display: none; }
     .sim-active #sim-controls-on { display: flex; }
 
     /* === 대시보드 === */
     .dashboard {
-        background: white; padding: 15px; border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px;
-        border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 15px;
+        background: white; padding: 12px; border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px;
+        border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 10px;
     }
-    .main-score { text-align: center; border-bottom: 1px solid #f0f0f0; padding-bottom: 15px; }
+    .main-score { text-align: center; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
     .main-score-label { font-size: 0.9rem; color: #7f8c8d; margin-bottom: 5px; }
     .main-score-val { font-size: 2.5rem; font-weight: 900; color: var(--primary); line-height: 1; }
     
-    .monthly-breakdown {
-        display: flex; justify-content: space-around;
-        background: #f8f9fa; border-radius: 8px; padding: 10px;
-    }
+    .monthly-breakdown { display: flex; justify-content: space-around; background: #f8f9fa; border-radius: 8px; padding: 8px; }
     .month-item { text-align: center; opacity: 0.5; transition: opacity 0.3s; }
     .month-item.active { opacity: 1; transform: scale(1.05); }
     .month-item.active .month-name { color: var(--active-month-text); font-weight: 800; }
@@ -125,11 +144,11 @@
     .month-val { font-size: 1.1rem; font-weight: 700; color: #2c3e50; }
 
     /* === 리스트 === */
-    .quest-list { display: flex; flex-direction: column; gap: 12px; }
+    .quest-list { display: flex; flex-direction: column; gap: 10px; }
     .quest-wrapper { position: relative; }
-    .quest-wrapper.is-child { margin-left: 20px; }
+    .quest-wrapper.is-child { margin-left: 15px; } 
     .connector {
-        position: absolute; top: -24px; left: -12px; width: 12px; height: 45px;
+        position: absolute; top: -24px; left: -10px; width: 10px; height: 45px;
         border-left: 3px solid var(--line-inactive); border-bottom: 3px solid var(--line-inactive);
         border-bottom-left-radius: 8px; z-index: 0;
     }
@@ -138,27 +157,31 @@
     /* === 카드 스타일 === */
     .quest-card {
         position: relative; background: var(--card-bg); border-radius: 10px;
-        padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         border: 1px solid var(--border); display: flex; align-items: center;
-        justify-content: space-between; flex-wrap: wrap; gap: 12px;
-        transition: all 0.2s; z-index: 1;
+        justify-content: space-between; flex-wrap: wrap; gap: 10px;
+        transition: all 0.2s; 
+        z-index: 1; 
     }
     .quest-card.locked { opacity: 0.6; pointer-events: none; filter: grayscale(100%); background: #f1f2f6; }
     .quest-card.completed-now { background-color: #f6fbff; border-color: #b3d7ff; box-shadow: 0 0 0 2px #b3d7ff inset; }
     .quest-card.completed-past { opacity: 0.75; pointer-events: none; background-color: #f8f9fa; border-color: #dcdde1; }
 
-    .quest-info { min-width: 180px; flex-shrink: 0; }
-    .quest-title { font-size: 1.05rem; font-weight: 700; margin: 0; color: #2c3e50; display: flex; align-items: center; gap: 8px; }
+    .quest-info { min-width: 150px; flex-shrink: 0; }
+    .quest-title { font-size: 1.0rem; font-weight: 700; margin: 0; color: #2c3e50; display: flex; align-items: center; gap: 6px; }
     .quest-points { font-size: 0.75rem; background-color: #eee; color: #777; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
     .quest-card.completed-now .quest-points { background-color: var(--primary); color: white; }
     .quest-points.past-badge { background-color: #95a5a6 !important; color: white !important; }
 
-    .map-grid { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .map-grid { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
     .map-btn {
-        width: 75px; height: 36px; display: flex; align-items: center; justify-content: center;
+        position: relative; 
+        width: 68px; height: 34px; 
+        display: flex; align-items: center; justify-content: center;
         background: #fff; border: 1px solid #ced6e0; border-radius: 6px;
-        font-size: 0.9rem; color: #57606f; font-weight: 500; cursor: pointer; user-select: none;
-        transition: all 0.1s; position: relative; overflow: hidden;
+        font-size: 0.85rem; color: #57606f; font-weight: 500; cursor: pointer; user-select: none;
+        transition: all 0.1s; overflow: visible; 
     }
     .map-btn:hover { border-color: #a4b0be; }
     .map-btn span { position: relative; z-index: 2; }
@@ -166,8 +189,24 @@
     .quest-card.completed-now .map-btn.checked { background-color: var(--primary); border-color: var(--primary); }
     .quest-card.completed-past .map-btn.checked { background-color: #95a5a6; border-color: #95a5a6; }
 
+    /* 링크 아이콘 */
+    .link-badge {
+        position: absolute; top: -6px; right: -6px;
+        width: 18px; height: 18px; border-radius: 50%;
+        background: white; border: 1px solid var(--link-color);
+        color: var(--link-color);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 100; 
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        transition: transform 0.2s, background 0.2s;
+    }
+    .link-badge:hover { transform: scale(1.2); background: var(--link-color); color: white; }
+    .link-badge.active-link { background: var(--link-color); color: white; transform: scale(1.2); }
+    .link-badge svg { width: 10px; height: 10px; fill: currentColor; }
+
     @media (max-width: 600px) {
-        .quest-card { flex-direction: column; align-items: flex-start; }
+        .quest-card { flex-direction: column; align-items: flex-start; gap: 8px; }
         .map-grid { width: 100%; justify-content: flex-start; }
         .map-btn { flex-grow: 1; max-width: 80px; }
         .quest-wrapper.is-child { margin-left: 10px; }
@@ -178,6 +217,8 @@
 </style>
 </head>
 <body>
+
+<svg id="tactical-canvas"></svg>
 
 <div id="sim-banner">
     <span>⚠️ 시뮬레이션 모드</span>
@@ -200,23 +241,25 @@
     </div>
 
     <div class="settings-modal" id="settings-modal">
-        <div class="settings-title">⚙️ 설정 및 테스트</div>
+        <div class="settings-title">⚙️ 설정 및 도구</div>
         
-        <div class="settings-section" id="sim-section">
+        <div class="settings-section">
+            <label class="settings-label">진행도 수동 관리</label>
+            <div id="manual-quest-list" class="manual-list"></div>
+            <div style="font-size:0.75rem; color:#95a5a6; margin-top:5px;">
+                * [전월 완료]로 설정 시 해당 분기 1일자로 기록됩니다.
+            </div>
+        </div>
+
+        <div class="settings-section" id="sim-section" style="border-top:1px solid #eee; padding-top:15px;">
             <label class="settings-label">시뮬레이션 (시간 여행)</label>
             <input type="date" id="debug-sim-date" class="settings-input">
-            
             <div id="sim-controls-off">
                 <button class="btn-action btn-start" style="width:100%" onclick="startSimulation()">시뮬레이션 모드 시작</button>
             </div>
-
             <div id="sim-controls-on" class="btn-group">
                 <button class="btn-action btn-move" onclick="moveDate()">날짜 이동 (적용)</button>
                 <button class="btn-action btn-stop" onclick="stopSimulation()">종료</button>
-            </div>
-            
-            <div style="font-size:0.75rem; color:#95a5a6; margin-top:8px;">
-                * 날짜를 바꾸고 [이동]을 눌러야 시간이 흐릅니다.
             </div>
         </div>
 
@@ -224,7 +267,6 @@
             <label class="settings-label">데이터 관리</label>
             <button class="btn-action btn-reset-data" onclick="manualReset()">전체 데이터 강제 초기화</button>
         </div>
-        
         <div id="debug-status" style="margin-top:10px; font-size:0.8rem; color:blue; text-align:center; height:1rem;"></div>
     </div>
 
@@ -237,7 +279,7 @@
     </div>
 
     <div id="quest-list" class="quest-list"></div>
-    <div class="footer-info">데이터는 서버에 저장되지 않습니다 | 익명 통계 수집<br>© 2026 S3GN</div>
+    <div class="footer-info">※ 본 툴은 비공식 2차 창작물이며, 데이터 오류 및 사용상의 불이익에 대해 책임지지 않습니다.<br>오류 제보 및 문의:shou3n@proton.me<br><br>데이터는 서버에 저장되지 않습니다 | 익명 통계 수집<br>© 2026 S3GN</div>
 </div>
 
 <script>
@@ -253,17 +295,21 @@
         { id: 'bq12', name: '기동부대 결전', points: 400, maps: ['5-2', '5-5', '6-4', '6-5'], prereq: 'by9', type: 'yearly' }
     ];
 
-    let appState = {
-        checkedMaps: {},
-        completedDates: {},
-        lastAccessTime: Date.now()
-    };
-    
+    let appState = { checkedMaps: {}, completedDates: {}, lastAccessTime: Date.now() };
     let simulationDate = null; 
+    let mapFrequency = {}; 
+    let isTouch = false; 
+    let activeLinkMap = null; 
 
-    function getNow() {
-        return simulationDate ? new Date(simulationDate) : new Date();
-    }
+    window.addEventListener('touchstart', function() { isTouch = true; }, {passive: true});
+    window.addEventListener('click', function(e) {
+        if (activeLinkMap && !e.target.closest('.link-badge')) {
+            clearConnections();
+            activeLinkMap = null;
+        }
+    });
+
+    function getNow() { return simulationDate ? new Date(simulationDate) : new Date(); }
 
     function getSeasonInfo(date) {
         const m = date.getMonth(); 
@@ -293,6 +339,7 @@
             name: seasons[quarterIndex],
             year: (quarterIndex === 0 && m !== 11) ? y : quarterStartYear, 
             months: months, 
+            startMonth: startMonthIndex,
             id: `${seasons[quarterIndex]}-${quarterStartYear}`
         };
     }
@@ -302,12 +349,21 @@
     }
 
     function init() {
-        const saved = localStorage.getItem('senka_v23_noicon');
+        const saved = localStorage.getItem('senka_v32_scroll_fix');
         if (saved) {
             appState = JSON.parse(saved);
             if(!appState.completedDates) appState.completedDates = {};
             checkAutoReset(new Date());
         }
+        
+        mapFrequency = {};
+        quests.forEach(q => {
+            if (q.id === 'bq12') return; 
+            q.maps.forEach(m => {
+                mapFrequency[m] = (mapFrequency[m] || 0) + 1;
+            });
+        });
+
         document.getElementById('debug-sim-date').valueAsDate = new Date();
         render();
     }
@@ -331,7 +387,6 @@
         }
 
         const isReset = resetMsg.length > 0;
-        
         if (isReset && !simulationDate) {
             alert("새 시즌이 시작되었습니다.\n" + resetMsg.join(", ") + " 초기화");
         }
@@ -348,7 +403,141 @@
     }
 
     function saveState() {
-        localStorage.setItem('senka_v23_noicon', JSON.stringify(appState));
+        localStorage.setItem('senka_v32_scroll_fix', JSON.stringify(appState));
+    }
+
+    // --- 전술 라인 (Absolute Scroll Fix) ---
+    function showConnections(mapName) {
+        const canvas = document.getElementById('tactical-canvas');
+        canvas.innerHTML = ''; 
+        
+        // 캔버스 크기를 문서 전체 크기로 맞춤 (스크롤 영역 포함)
+        canvas.style.height = document.documentElement.scrollHeight + 'px';
+
+        const targets = document.querySelectorAll(`.link-badge[data-map="${mapName}"]`);
+        if (targets.length < 2) return;
+
+        const badgeRadius = 10; 
+
+        for (let i = 0; i < targets.length - 1; i++) {
+             const r1 = targets[i].getBoundingClientRect();
+             // V32 핵심: window.scrollY를 더해서 문서 절대 좌표 계산
+             const x1 = r1.left + r1.width / 2 + window.scrollX;
+             const y1 = r1.top + r1.height / 2 + window.scrollY;
+             
+             const r2 = targets[i+1].getBoundingClientRect();
+             const x2 = r2.left + r2.width / 2 + window.scrollX;
+             const y2 = r2.top + r2.height / 2 + window.scrollY;
+
+             const dx = x2 - x1;
+             const dy = y2 - y1;
+             const length = Math.sqrt(dx*dx + dy*dy);
+             
+             if (length === 0) continue; 
+
+             const ux = dx / length;
+             const uy = dy / length;
+
+             const newX1 = x1 + (ux * badgeRadius);
+             const newY1 = y1 + (uy * badgeRadius);
+             const newX2 = x2 - (ux * badgeRadius);
+             const newY2 = y2 - (uy * badgeRadius);
+
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", newX1);
+            line.setAttribute("y1", newY1);
+            line.setAttribute("x2", newX2);
+            line.setAttribute("y2", newY2);
+            line.setAttribute("stroke", "#e67e22");
+            line.setAttribute("stroke-width", "2.5");
+            line.setAttribute("stroke-dasharray", "5,3");
+            canvas.appendChild(line);
+        }
+        
+        targets.forEach(el => el.classList.add('active-link'));
+    }
+
+    function clearConnections() {
+        document.getElementById('tactical-canvas').innerHTML = '';
+        document.querySelectorAll('.link-badge').forEach(el => el.classList.remove('active-link'));
+    }
+
+    function handleLinkClick(event, mapName) {
+        event.stopPropagation(); 
+
+        if (!isTouch) {
+            batchToggleMap(mapName);
+            return;
+        }
+
+        if (activeLinkMap === mapName) {
+            batchToggleMap(mapName);
+            clearConnections();
+            activeLinkMap = null;
+        } else {
+            clearConnections(); 
+            showConnections(mapName);
+            activeLinkMap = mapName;
+        }
+    }
+
+    function handleMouseEnter(mapName) {
+        if (!isTouch) showConnections(mapName);
+    }
+    function handleMouseLeave() {
+        if (!isTouch) clearConnections();
+    }
+
+    function batchToggleMap(mapName) {
+        const targetQuests = [];
+        quests.forEach(q => {
+            if (q.id === 'bq12') return; 
+            
+            let isLocked = false;
+            if (q.prereq) {
+                if (!appState.completedDates[q.prereq]) {
+                    isLocked = true;
+                }
+            }
+            if (isLocked) return;
+
+            q.maps.forEach((m, idx) => {
+                if (m === mapName) {
+                    targetQuests.push({ qid: q.id, idx: idx });
+                }
+            });
+        });
+
+        let changed = false;
+        targetQuests.forEach(item => {
+            const q = quests.find(x => x.id === item.qid);
+            const key = `${q.id}_${item.idx}`;
+            const maxVal = q.reqCount || 1;
+            let val = appState.checkedMaps[key] || 0;
+
+            val++;
+            if (val > maxVal) val = 0;
+            
+            if (val === 0) delete appState.checkedMaps[key];
+            else appState.checkedMaps[key] = val;
+            
+            let doneMaps = 0;
+            q.maps.forEach((_, idx) => {
+                if ((appState.checkedMaps[`${q.id}_${idx}`] || 0) >= maxVal) doneMaps++;
+            });
+
+            if (doneMaps === q.maps.length) {
+                if (!appState.completedDates[q.id]) appState.completedDates[q.id] = getNow().toISOString();
+            } else {
+                delete appState.completedDates[q.id];
+            }
+            changed = true;
+        });
+
+        if (changed) {
+            saveState();
+            render();
+        }
     }
 
     function render() {
@@ -357,7 +546,6 @@
         const isSim = !!simulationDate;
 
         document.getElementById('sim-banner').style.display = isSim ? 'flex' : 'none';
-        
         if (isSim) {
             document.body.classList.add('sim-active-body');
             document.getElementById('sim-section').classList.add('sim-active');
@@ -367,7 +555,6 @@
         }
 
         document.getElementById('season-text').innerText = `${seasonInfo.year}년 ${seasonInfo.name} 분기`;
-        // 아이콘 제거: document.querySelector('.season-icon').innerText = seasonInfo.icon; 삭제됨
         document.getElementById('today-date').innerText = `${now.getMonth()+1}월 ${now.getDate()}일`;
 
         let scoresByMonth = [0, 0, 0]; 
@@ -437,7 +624,7 @@
             let pointTxt = `+${q.points}`;
             let pointClass = 'quest-points';
             if (st.status === 'completed-past') {
-                pointTxt = `기완료`;
+                pointTxt = `작전 완료`;
                 pointClass += ' past-badge';
             }
 
@@ -459,10 +646,23 @@
                 let btnText = map;
                 if (maxVal > 1 && currentVal > 0 && currentVal < maxVal) btnText += ` (${currentVal})`;
 
+                let linkIconHtml = '';
+                if (mapFrequency[map] > 1 && q.id !== 'bq12') {
+                    linkIconHtml = `
+                        <div class="link-badge" data-map="${map}"
+                             onmouseenter="handleMouseEnter('${map}')" 
+                             onmouseleave="handleMouseLeave()"
+                             onclick="handleLinkClick(event, '${map}')">
+                            <svg viewBox="0 0 24 24"><path d="M3.9,12c0-1.71,1.39-3.1,3.1-3.1h4V7H7c-2.76,0-5,2.24-5,5s2.24,5,5,5h4v-1.9H7C5.29,15.1,3.9,13.71,3.9,12z M8,13h8v-2H8V13z M17,7h-4v1.9h4c1.71,0,3.1,1.39,3.1,3.1s-1.39,3.1-3.1,3.1h-4V17h4c2.76,0,5-2.24,5-5S19.76,7,17,7z"/></svg>
+                        </div>
+                    `;
+                }
+
                 mapsHtml += `
                     <div class="${btnClass}" style="${btnStyle}"
                          onclick="toggleMap('${q.id}', ${mIndex})">
                          <span>${btnText}</span>
+                         ${linkIconHtml}
                     </div>
                 `;
             });
@@ -475,7 +675,6 @@
             const wrapper = document.createElement('div');
             wrapper.className = `quest-wrapper ${q.prereq ? 'is-child' : ''}`;
             
-            // 아이콘 없는 렌더링 (자물쇠 제거됨)
             wrapper.innerHTML = `
                 ${connectorHtml}
                 <div class="${cardClass}">
@@ -496,7 +695,6 @@
 
     function toggleMap(questId, mapIndex) {
         const q = quests.find(x => x.id === questId);
-        
         if (q.prereq) {
             const p = quests.find(x => x.id === q.prereq);
             let done = 0;
@@ -510,7 +708,6 @@
         const key = `${questId}_${mapIndex}`;
         const maxVal = q.reqCount || 1;
         let val = appState.checkedMaps[key] || 0;
-        
         val++;
         if (val > maxVal) val = 0;
         
@@ -534,6 +731,60 @@
         render();
     }
 
+    function renderSettings() {
+        const list = document.getElementById('manual-quest-list');
+        list.innerHTML = '';
+        quests.forEach(q => {
+            const doneDateStr = appState.completedDates[q.id];
+            let status = 'none';
+            let btnText = '미완료';
+            if (doneDateStr) {
+                const doneDate = new Date(doneDateStr);
+                const now = getNow();
+                if (isSameMonth(doneDate, now)) {
+                    status = 'now';
+                    btnText = '금월 완료';
+                } else {
+                    status = 'past';
+                    btnText = '작전 완료';
+                }
+            }
+            list.innerHTML += `
+                <div class="manual-item">
+                    <span class="manual-name">${q.name}</span>
+                    <button class="manual-btn status-${status}" onclick="toggleQuestStatus('${q.id}')">${btnText}</button>
+                </div>
+            `;
+        });
+    }
+
+    function toggleQuestStatus(qid) {
+        const q = quests.find(x => x.id === qid);
+        const now = getNow();
+        const doneDateStr = appState.completedDates[qid];
+        
+        if (!doneDateStr) {
+            q.maps.forEach((_, idx) => appState.checkedMaps[`${qid}_${idx}`] = (q.reqCount || 1));
+            appState.completedDates[qid] = now.toISOString();
+        } else {
+            const doneDate = new Date(doneDateStr);
+            if (isSameMonth(doneDate, now)) {
+                const season = getSeasonInfo(now);
+                let pastDate = new Date(season.year, season.startMonth, 1);
+                if (q.type === 'yearly') {
+                    const yYear = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+                    pastDate = new Date(yYear, 5, 1);
+                }
+                appState.completedDates[qid] = pastDate.toISOString();
+            } else {
+                resetQuest(qid);
+            }
+        }
+        saveState();
+        render();
+        renderSettings(); 
+    }
+
     function toggleSettings() {
         const modal = document.getElementById('settings-modal');
         const overlay = document.getElementById('settings-overlay');
@@ -544,6 +795,7 @@
         } else {
             modal.classList.add('open');
             overlay.style.display = 'block';
+            renderSettings();
         }
     }
     
@@ -588,6 +840,10 @@
         const el = document.getElementById('debug-status');
         el.innerText = msg;
         setTimeout(() => el.innerText = "", 3000);
+    }
+    
+    function clearConnections() {
+        document.getElementById('tactical-canvas').innerHTML = '';
     }
 
     init();
